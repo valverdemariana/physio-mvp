@@ -1,11 +1,14 @@
-import jwt from "jsonwebtoken";
-import { env } from "../env.js";
-import type { JwtPayload } from "../types.js";
+import jwt, { SignOptions, JwtPayload } from "jsonwebtoken";
+import { env } from "../env";
 
-export function signToken(payload: JwtPayload) {
-  return jwt.sign(payload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN });
+export function signToken(payload: object) {
+  const options: SignOptions = {
+    expiresIn: env.JWT_EXPIRES_IN as any,
+  };
+
+  return jwt.sign(payload, env.JWT_SECRET as string, options);
 }
 
-export function verifyToken(token: string): JwtPayload {
-  return jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+export function verifyToken(token: string): JwtPayload & { sub?: string } {
+  return jwt.verify(token, env.JWT_SECRET as string) as JwtPayload & { sub?: string };
 }
