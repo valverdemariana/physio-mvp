@@ -1,13 +1,13 @@
 "use client";
-
+import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clearToken } from "../lib/auth";
 
-const items = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/agenda", label: "Agenda do dia" },
-  { href: "/patients", label: "Pacientes" },
+const items: { label: string; href: Route }[] = [
+  { label: "Dashboard", href: "/dashboard" },
+  { label: "Agenda", href: "/agenda" },
+  { label: "Pacientes", href: "/patients" },
 ];
 
 export function Nav() {
@@ -17,7 +17,7 @@ export function Nav() {
     <div className="nav">
       <strong>Physio MVP</strong>
       {items.map((it) => (
-        <Link key={it.href} href={it.href} className={pathname?.startsWith(it.href) ? "active" : ""}>
+       <Link key={it.href} href={it.href as Route} className={pathname?.startsWith(it.href) ? "active" : ""}>
           {it.label}
         </Link>
       ))}
