@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  FISIO
+  RECEPCAO
+}
+
+enum PayerType {
+  CONVENIO
+  PARTICULAR
+}
+
+enum SessionStatus {
+  AGENDADA
+  REALIZADA
+  FALTOU
+  REMARCADA
+  CANCELADA
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  role         Role     @default(FISIO)
+  passwordHash String
+  isActive     Boolean  @default(true)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions     Session[] @relation("SessionFisio")
+
+  createdPatients Patient[] @relation("PatientCreatedBy")
+  updatedPatients Patient[] @relation("PatientUpdatedBy")
+
+  createdSessions Session[] @relation("SessionCreatedBy")
+  updatedSessions Session[] @relation("SessionUpdatedBy")
+
+  statusLogs   SessionStatusLog[]
+}
+
+model Patient {
+  id          String    @id @default(cuid())
+  name        String
+  phone       String
+  email       String?
+  birthDate   DateTime?
+  payerType   PayerType
+  complaint   String?
+  notes       String?
+  alerts      String?
+  isActive    Boolean   @default(true)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?
+  updatedById String?
+
+  createdBy   User? @relation("PatientCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User? @relation("PatientUpdatedBy", fields: [updatedById], references: [id])
+
+  treatmentPlans TreatmentPlan[]
+  sessions       Session[]
+
+  @@index([name])
+  @@index([phone])
+  @@index([isActive, payerType])
+}
+
+model TreatmentPlan {
+  id              String   @id @default(cuid())
+  patientId       String
+  objective       String?
+  frequency       String?
+  procedures      String?
+  reevaluationAt  DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdById     String?
+  updatedById     String?
+
+  patient         Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  versions        TreatmentPlanVersion[]
+
+  @@index([patientId])
+}
+
+model TreatmentPlanVersion {
+  id             String   @id @default(cuid())
+  treatmentPlanId String
+  snapshot       Json
+  createdAt      DateTime @default(now())
+
+  treatmentPlan  TreatmentPlan @relation(fields: [treatmentPlanId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id            String        @id @default(cuid())
+  patientId     String
+  scheduledAt   DateTime
+  fisioId       String
+  status        SessionStatus @default(AGENDADA)
+
+  painScore     Int?
+  evolution     String?
+  procedures    String?
+  nextSessionAt DateTime?
+  absenceReason String?
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  createdById   String?
+  updatedById   String?
+
+  patient       Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  fisio         User          @relation("SessionFisio", fields: [fisioId], references: [id])
+
+  createdBy     User?         @relation("SessionCreatedBy", fields: [createdById], references: [id])
+  updatedBy     User?         @relation("SessionUpdatedBy", fields: [updatedById], references: [id])
+
+  statusLogs    SessionStatusLog[]
+
+  @@index([scheduledAt])
+  @@index([patientId])
+  @@index([fisioId])
+  @@index([status])
+}
+
+model SessionStatusLog {
+  id         String        @id @default(cuid())
+  sessionId  String
+  fromStatus SessionStatus?
+  toStatus   SessionStatus
+  note       String?
+  changedById String?
+  changedAt  DateTime      @default(now())
+
+  session    Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  changedBy  User?         @relation(fields: [changedById], references: [id])
+
+  @@index([sessionId])
+  @@index([changedAt])
+}
